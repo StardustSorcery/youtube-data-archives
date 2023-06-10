@@ -1,4 +1,4 @@
-const log4js = require('./logger').init();
+const log4js = require('./modules/logger').init();
 
 async function main() {
   console.log('Hello, world!');
