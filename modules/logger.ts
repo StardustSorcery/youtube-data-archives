@@ -14,12 +14,6 @@ exports.init = function init() {
         ],
         level: 'debug',
       },
-      access: {
-        appenders: [
-          'stdout',
-        ],
-        level: 'info',
-      },
     }
   });
 
