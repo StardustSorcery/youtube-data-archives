@@ -37,4 +37,5 @@ CMD [ "npm", "start" ]
 ENV MONGO_URI=mongodb://mongo/youtube-data-archives
 ENV MONGO_DATABASE=
 ENV MONGO_TARGETS_COLLECTION=targets
+ENV MONGO_CHANNELS_COLLECTION=channels
 ENV CRON_RULE="0 0 0 * * *"

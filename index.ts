@@ -2,19 +2,21 @@ import assert from 'node:assert';
 import { MongoDB } from './types/mongodb';
 import { TargetsByType } from './types/targets';
 import Target from './models/Target';
+import { Youtube } from './types/youtube';
 
 const log4js = require('./modules/logger').init();
 const logger = log4js.getLogger('default');
 
 async function main() {
   const mongodb: MongoDB = require('./modules/mongodb').init();
+  const youtube: Youtube = require('./modules/youtube').init();
 
   // retrieves list of targets from db
   const targetsByType: TargetsByType = await require('./modules/targets').get(mongodb.collections.targets).catch((err: Error) => {
     logger.error('Failed to retrieve targets from database.');
     throw err;
   });
-  logger.debug(`Retrieved ${Object.keys(targetsByType).length} type(s) / ${Object.values(targetsByType).reduce((accu, curr): Target[] => [ ...accu, ...curr ], []).length} target(s) from database.`);
+  logger.info(`Retrieved ${Object.keys(targetsByType).length} type(s) / ${Object.values(targetsByType).reduce((accu, curr): Target[] => [ ...accu, ...curr ], []).length} target(s) from database.`);
 
   // schedules job for targets
   const {
@@ -22,14 +24,35 @@ async function main() {
   } = process.env;
 
   const job = require('node-schedule').scheduleJob(CRON_RULE, () => {
+    logger.info('Started archive job.');
+
+    const promises: Promise<any>[] = [];
+
     if(targetsByType.channel) {
       const targets = targetsByType.channel;
-      console.log(targets.map(target => target.ids.channelId).join(', '));
+      logger.debug(`Creating snapshot of ${targets.length} YouTube channel(s).`);
+      
+      promises.push(
+        require('./modules/ytChannelSnapshots').create(
+          youtube.client,
+          mongodb.collections.channels,
+          targets,
+        ).then(() => {
+          logger.info(`Created snapshot of ${targets.length} YouTube channel(s).`);
+          return;
+        }).catch((err: Error) => {
+          logger.error('Failed to create snapshot of YouTube channel(s).');
+          logger.error(err.toString());
+          return;
+        })
+      );
     }
 
-    return;
+    return Promise.allSettled(promises).then(() => {
+      logger.info('Completed archive job.');
+    });
   });
-  logger.debug(`Scheduled a job at cron rule "${CRON_RULE}"`);
+  logger.info(`Scheduled a job at cron rule "${CRON_RULE}"`);
 
   return job;
 }

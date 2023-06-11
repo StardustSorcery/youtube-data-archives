@@ -8,3 +8,4 @@ services:
     build: .
     environment:
       CRON_RULE: ${APP_CRON_RULE:-"0 0 0 * * *"}
+      GOOGLE_API_KEY: ${APP_GOOGLE_API_KEY:?"APP_GOOGLE_API_KEY is required."}

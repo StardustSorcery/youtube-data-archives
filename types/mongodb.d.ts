@@ -9,5 +9,6 @@ type MongoDB = {
   db: Db;
   collections: {
     targets: Collection,
+    channels: Collection,
   };
 };
