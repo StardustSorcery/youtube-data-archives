@@ -10,5 +10,6 @@ type MongoDB = {
   collections: {
     targets: Collection,
     channels: Collection,
+    videos: Collection,
   };
 };

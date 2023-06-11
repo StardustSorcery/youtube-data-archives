@@ -48,6 +48,26 @@ async function main() {
       );
     }
 
+    if(targetsByType.video) {
+      const targets = targetsByType.video;
+      logger.debug(`Creating snapshot of ${targets.length} YouTube video(s).`);
+      
+      promises.push(
+        require('./modules/ytVideoSnapshots').create(
+          youtube.client,
+          mongodb.collections.videos,
+          targets,
+        ).then(() => {
+          logger.info(`Created snapshot of ${targets.length} YouTube video(s).`);
+          return;
+        }).catch((err: Error) => {
+          logger.error('Failed to create snapshot of YouTube video(s).');
+          logger.error(err.toString());
+          return;
+        })
+      );
+    }
+
     return Promise.allSettled(promises).then(() => {
       logger.info('Completed archive job.');
     });
