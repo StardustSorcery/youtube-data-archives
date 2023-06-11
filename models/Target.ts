@@ -9,10 +9,6 @@ export default class Target {
     public ids: {
       [key: string]: string,
     },
-    public schedule: {
-      tz: string,
-      rule: string,
-    },
     public _id?: ObjectId,
   ) {}
 }

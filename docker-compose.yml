@@ -6,3 +6,5 @@ services:
 
   app:
     build: .
+    environment:
+      CRON_RULE: ${APP_CRON_RULE:-"0 0 0 * * *"}

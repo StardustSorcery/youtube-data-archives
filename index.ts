@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import { MongoDB } from './types/mongodb';
+import { TargetsByType } from './types/targets';
 import Target from './models/Target';
 
 const log4js = require('./modules/logger').init();
@@ -9,38 +10,28 @@ async function main() {
   const mongodb: MongoDB = require('./modules/mongodb').init();
 
   // retrieves list of targets from db
-  const targets: Target[] = await require('./modules/targets').get(mongodb.collections.targets).catch((err: Error) => {
+  const targetsByType: TargetsByType = await require('./modules/targets').get(mongodb.collections.targets).catch((err: Error) => {
     logger.error('Failed to retrieve targets from database.');
     throw err;
   });
-  logger.debug(`Retrieved ${targets.length} target(s) from database.`);
+  logger.debug(`Retrieved ${Object.keys(targetsByType).length} type(s) / ${Object.values(targetsByType).reduce((accu, curr): Target[] => [ ...accu, ...curr ], []).length} target(s) from database.`);
 
-  // schedules jobs based on targets
-  const schedule = require('node-schedule');
-  targets.forEach((target) => {
-    let method;
+  // schedules job for targets
+  const {
+    CRON_RULE,
+  } = process.env;
 
-    switch(target.type) {
-      default: {
-        logger.warn(`Specified target type "${target.type}" is not supported.`);
-        logger.debug(`Skipped scheduling job. (ID: ${target._id?.toString()})`);
-        return;
-      }
-      case 'channel': {
-        assert(target.ids.channelId);
-
-        method = () => {
-          console.log(target.ids.channelId);
-        };
-      }
+  const job = require('node-schedule').scheduleJob(CRON_RULE, () => {
+    if(targetsByType.channel) {
+      const targets = targetsByType.channel;
+      console.log(targets.map(target => target.ids.channelId).join(', '));
     }
 
-    const job = schedule.scheduleJob(target.schedule, method);
-
-    logger.debug(`Scheduled job. (ID: ${target._id?.toString()})`);
-
-    return job;
+    return;
   });
+  logger.debug(`Scheduled a job at cron rule "${CRON_RULE}"`);
+
+  return job;
 }
 
 
