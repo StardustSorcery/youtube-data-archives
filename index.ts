@@ -11,20 +11,20 @@ async function main() {
   const mongodb: MongoDB = require('./modules/mongodb').init();
   const youtube: Youtube = require('./modules/youtube').init();
 
-  // retrieves list of targets from db
-  const targetsByType: TargetsByType = await require('./modules/targets').get(mongodb.collections.targets).catch((err: Error) => {
-    logger.error('Failed to retrieve targets from database.');
-    throw err;
-  });
-  logger.info(`Retrieved ${Object.keys(targetsByType).length} type(s) / ${Object.values(targetsByType).reduce((accu, curr): Target[] => [ ...accu, ...curr ], []).length} target(s) from database.`);
-
   // schedules job for targets
   const {
     CRON_RULE,
   } = process.env;
 
-  const job = require('node-schedule').scheduleJob(CRON_RULE, () => {
+  const job = require('node-schedule').scheduleJob(CRON_RULE, async () => {
     logger.info('Started archive job.');
+
+    // retrieves list of targets from db
+    const targetsByType: TargetsByType = await require('./modules/targets').get(mongodb.collections.targets).catch((err: Error) => {
+      logger.error('Failed to retrieve targets from database.');
+      throw err;
+    });
+    logger.info(`Retrieved ${Object.keys(targetsByType).length} type(s) / ${Object.values(targetsByType).reduce((accu, curr): Target[] => [ ...accu, ...curr ], []).length} target(s) from database.`);
 
     const promises: Promise<any>[] = [];
 
@@ -68,9 +68,11 @@ async function main() {
       );
     }
 
-    return Promise.allSettled(promises).then(() => {
-      logger.info('Completed archive job.');
-    });
+    await Promise.allSettled(promises);
+
+    logger.info('Completed archive job.');
+
+    return;
   });
   logger.info(`Scheduled a job at cron rule "${CRON_RULE}"`);
 
