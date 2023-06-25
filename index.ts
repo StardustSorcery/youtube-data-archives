@@ -8,9 +8,6 @@ const log4js = require('./modules/logger').init();
 const logger = log4js.getLogger('default');
 
 async function main() {
-  const mongodb: MongoDB = require('./modules/mongodb').init();
-  const youtube: Youtube = require('./modules/youtube').init();
-
   // schedules job for targets
   const {
     CRON_RULE,
@@ -18,6 +15,9 @@ async function main() {
 
   const job = require('node-schedule').scheduleJob(CRON_RULE, async () => {
     logger.info('Started archive job.');
+
+    const mongodb: MongoDB = require('./modules/mongodb').init();
+    const youtube: Youtube = require('./modules/youtube').init();
 
     // retrieves list of targets from db
     const targetsByType: TargetsByType = await require('./modules/targets').get(mongodb.collections.targets).catch((err: Error) => {
@@ -68,7 +68,9 @@ async function main() {
       );
     }
 
-    await Promise.allSettled(promises);
+    await Promise.allSettled(promises).finally(() => {
+      return mongodb.client.close();
+    });
 
     logger.info('Completed archive job.');
 
